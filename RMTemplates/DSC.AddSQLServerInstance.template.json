@@ -1,0 +1,109 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "domainname":{
+            "type": "string"
+        },
+        "AdminUserName":{
+            "type": "string"
+        },
+        "AdminPassword":{
+            "type": "securestring"
+        },
+        "SourceUserName":{
+            "type": "string"
+        },
+        "SourcePassword":{
+            "type": "securestring"
+        },
+        "SourcePath":{
+            "type": "string"
+        },
+        "SAPassword":{
+            "type": "securestring"
+        },
+        "ServiceAccountPassword":{
+            "type": "securestring"
+        },
+        "AgentAccountPassword":{
+            "type": "securestring"
+        },
+        "SysAdminAccounts":{
+            "type": "string"
+        },
+        "OUPath":{
+            "type":"string"
+        },
+        "dscURL": {
+            "type": "string"
+        },
+        "virtualMachineName":{
+            "type": "string"
+        },
+        "sasQueryToken":{
+            "type": "securestring"
+        },
+        "clusterName":{
+            "type": "string"
+        }
+    },
+    "variables": {
+        "DSCFileName":"AddSQLServerInstance.ps1.zip"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('virtualMachineName'),'/Microsoft.Powershell.DSC')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+             "location": "[resourceGroup().location]",
+             "apiVersion": "2015-06-15",
+             "dependsOn": [],
+             "properties": {
+                  "publisher": "Microsoft.Powershell",
+                  "type": "DSC",
+                  "typeHandlerVersion": "2.20",
+                  "autoUpgradeMinorVersion": true,
+                  "settings": {
+                      "configuration": {
+                          "url": "[concat(parameters('dscURL'),variables('DSCFileName'))]",
+                          "script": "AddSQLServerInstance.ps1",
+                          "function": "AddSQLServerInstance"
+                      },
+                      "configurationArguments": {
+                          "DomainName":"[parameters('domainname')]",
+                          "ClusterName":"[parameters('clusterName')]",
+                          "SourcePath":"[parameters('SourcePath')]",
+                          "OUPath":"[parameters('OUPath')]",
+                          "SysAdminAccounts":"[parameters('SysAdminAccounts')]"
+                      }
+                  },
+                  "protectedSettings": {
+                      "configurationUrlSasToken": "[parameters('sasQueryToken')]",
+                      "configurationArguments": {
+                          "Admincreds":{
+                              "userName":"[parameters('AdminUsername')]",
+                              "password":"[parameters('adminPassword')]"
+                          },
+                          "SourceCredential":{
+                              "userName":"[parameters('SourceUserName')]",
+                              "password":"[parameters('SourcePassword')]"
+                          },
+                          "SACred":{
+                              "userName":"sa",
+                              "password":"[parameters('SAPassword')]"
+                          },
+                          "SvcAccount":{
+                              "userName":"svcAccount",
+                              "password":"[parameters('ServiceAccountPassword')]"
+                          },
+                          "AgtSvcAccount":{
+                              "userName":"svcAccount",
+                              "password":"[parameters('AgentAccountPassword')]"
+                          }
+                      }
+                  }
+             }
+        }
+    ]
+}
+

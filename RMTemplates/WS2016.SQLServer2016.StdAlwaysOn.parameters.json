@@ -1,0 +1,24 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "value": "labadmin"
+    },
+    "deployerInitials": {
+      "value": "jef"
+    },
+    "sqlVirtualMachineSize": {
+      "value": "Standard_D2S_V3"
+    },
+    "dataStorageAccountType": {
+      "value": "Standard_LRS"
+    },
+    "backupStorageAccountType": {
+      "value": "Standard_LRS"
+    },
+    "branchName":{
+      "value": "dev"
+    }
+  }
+}

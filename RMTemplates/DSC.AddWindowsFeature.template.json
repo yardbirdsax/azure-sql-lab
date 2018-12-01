@@ -1,0 +1,50 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "dscURL": {
+            "type": "string"
+        },
+        "virtualMachineName":{
+            "type": "string"
+        },
+        "sasQueryToken":{
+            "type": "securestring"
+        },
+        "featureName":{
+            "type": "string"
+        }
+    },
+    "variables": {
+        "DSCFileName":"AddWindowsFeature.ps1.zip"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('virtualMachineName'),'/Microsoft.Powershell.DSC')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+             "location": "[resourceGroup().location]",
+             "apiVersion": "2015-06-15",
+             "dependsOn": [],
+             "properties": {
+                  "publisher": "Microsoft.Powershell",
+                  "type": "DSC",
+                  "typeHandlerVersion": "2.20",
+                  "autoUpgradeMinorVersion": true,
+                  "settings": {
+                      "configuration": {
+                          "url": "[concat(parameters('dscURL'),variables('DSCFileName'))]",
+                          "script": "AddWindowsFeature.ps1",
+                          "function": "AddWindowsFeature"
+                      },
+                      "configurationArguments": {
+                          "FeatureName":"[parameters('featureName')]"
+                      }
+                  },
+                  "protectedSettings": {
+                      "configurationUrlSasToken": "[parameters('sasQueryToken')]"
+                  }
+             }
+        }
+    ]
+}
+

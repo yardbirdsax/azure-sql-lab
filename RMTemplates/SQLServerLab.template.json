@@ -1,0 +1,282 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "type": "string"
+    },
+    "adminPassword": {
+      "type": "securestring"
+    },
+    "deployerInitials": {
+      "type": "string"
+    },
+    "sqlVirtualMachineSize": {
+      "type": "string"
+    },
+    "dataStorageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Premium_LRS"
+      ]
+    },
+    "backupStorageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Premium_LRS"
+      ]
+    },
+    "adDomainName": {
+      "type": "string",
+      "defaultValue": "azurelab.local"
+    },
+    "BranchName":{
+      "type": "string",
+      "defaultValue": "default"
+    }
+  },
+  "variables": {
+    "templateURL": "[concat('https://bitbucket.org/yardbirdsax/sql-tools/raw/',parameters('BranchName'),'/azurelab/RMTemplates/')]",
+    "azureToolsDscUrl":"[concat('https://bitbucket.org/yardbirdsax/azure-tools/raw/',parameters('BranchName'),'/DSC/')]",
+    "availabilitySetName": "labsqlclus01as",
+    "virtualNetworkName": "AzureLabVNET",
+    "virtualNetworkAddressRange": "10.0.0.0/20",
+    "adSubnetName": "domain",
+    "adSubnetAddressPrefix": "10.0.0.0/24",
+    "dbSubnetName": "database",
+    "dbSubnetAddressPrefix": "10.0.1.0/24",
+    "adTemplateURL": "[concat('https://bitbucket.org/yardbirdsax/azure-tools/raw/',parameters('BranchName'), '/RMTemplates/ADOnly.template.json')]",
+    "sqlTemplateURL": "[concat(variables('templateURL'),'WS2016.SQLServer2016.StdAlwaysOnAG.template.json')]",
+    "clusterName": "labsqlclus01",
+    "apiVersion": "2016-03-30",
+    "adDNSName": "[toLower(concat(parameters('deployerInitials'),'labdc',uniqueString(concat(subscription().subscriptionId,resourceGroup().name))))]",
+    "dcIpAddress": "10.0.0.4",
+    "dcVirtualMachineName": "labdc"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('adSubnetName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-rdp",
+            "properties": {
+              "direction": "Inbound",
+              "access": "Allow",
+              "priority": 100,
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "protocol": "Tcp"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('dbSubnetName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-rdp",
+            "properties": {
+              "direction": "Inbound",
+              "access": "Allow",
+              "priority": 100,
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "protocol": "Tcp"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2016-03-30",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkSecurityGroups/',variables('adSubnetName'))]",
+        "[concat('Microsoft.Network/networkSecurityGroups/',variables('dbSubnetName'))]"
+      ],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('virtualNetworkAddressRange')]"
+          ]
+        },
+        "dhcpOptions": {
+          "dnsServers":[
+            "[variables('dcIpAddress')]",
+            "8.8.8.8"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('adSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('adSubnetAddressPrefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('adSubnetName'))]"
+              }
+            }
+          },
+          {
+            "name": "[variables('dbSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('dbSubnetAddressPrefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('dbSubnetName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('availabilitySetName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": {}
+    },
+    {
+      "apiVersion": "2015-01-01",
+      "name": "createDC",
+      "type": "Microsoft.Resources/deployments",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/',variables('virtualNetworkName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('adTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "adDomainName": {
+            "value": "[parameters('adDomainName')]"
+          },
+          "virtualNetworkName": {
+            "value": "[variables('virtualNetworkName')]"
+          },
+          "virtualNetworkAddressRange": {
+            "value": "[variables('virtualNetworkAddressRange')]"
+          },
+          "adSubnetAddressPrefix": {
+            "value": "[variables('adSubnetAddressPrefix')]"
+          },
+          "adSubnetName": {
+            "value": "[variables('adSubnetName')]"
+          },
+          "deployerInitials": {
+            "value": "[parameters('deployerInitials')]"
+          },
+          "dcVirtualMachineName":{
+            "value": "[variables('dcVirtualMachineName')]"
+          },
+          "dcIpAddress":{
+            "value": "[variables('dcIpAddress')]"
+          },
+          "gitBranchName":{
+            "value": "[parameters('BranchName')]"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-01-01",
+      "name": "createSqlVm",
+      "type": "Microsoft.Resources/deployments",
+      "dependsOn": [
+        "CreateDC"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('sqlTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "domainUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "domainPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "templateURL": {
+            "value": "[variables('templateURL')]"
+          },
+          "virtualMachineSize": {
+            "value": "Standard_D2S_V3"
+          },
+          "dataStorageAccountType": {
+            "value": "Standard_LRS"
+          },
+          "adNetBiosName": {
+            "value": "azurelab"
+          },
+          "adDomainName": {
+            "value": "[parameters('adDomainName')]"
+          },
+          "clusterName": {
+            "value": "[variables('clusterName')]"
+          },
+          "sqlVmName": {
+            "value": "labsql"
+          },
+          "sqlVmCount": {
+            "value": 2
+          },
+          "sasQueryToken": {
+            "value": ""
+          },
+          "virtualNetworkName": {
+            "value": "[variables('virtualNetworkName')]"
+          },
+          "virtualNetworkResourceGroupName": {
+            "value": "[resourceGroup().name]"
+          },
+          "subnetName": {
+            "value": "[variables('dbSubnetName')]"
+          },
+          "OUPath": {
+            "value": "CN=Computers,DC=azurelab,DC=local"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "adminUsername": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    }
+  }
+}
