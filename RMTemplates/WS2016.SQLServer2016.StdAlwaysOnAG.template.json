@@ -16,9 +16,9 @@
         },
         "templateURL": {
             "type": "string",
-            "defaultValue": "https://jeftemplates.core.windows.net/templates/"
+            "defaultValue": "https://bitbucket.org/yardbirdsax/azure-sql-lab/raw/"
         },
-        "virtualMachineSize": {
+        "sqlVirtualMachineSize": {
             "type": "string",
             "defaultValue": "Standard_DS11_V2_Promo"
         },
@@ -48,7 +48,8 @@
             "type": "int"
         },
         "sasQueryToken": {
-            "type": "securestring"
+            "type": "securestring",
+            "defaultValue": ""
         },
         "virtualNetworkName": {
             "type": "string"
@@ -62,7 +63,7 @@
         },
         "OUPath": {
             "type": "string",
-            "defaultValue": "CN=Computers,DC=azurelab,DC=local"
+            "defaultValue": ""
         },
         "dataDiskSizeGB": {
             "type": "int",
@@ -70,7 +71,7 @@
         },
         "azureToolsUrl":{
             "type": "string",
-            "defaultValue": "https://bitbucket.org/yardbirdsax/azure-tools/"
+            "defaultValue": "https://bitbucket.org/yardbirdsax/azure-tools/raw/"
         },
         "branchName":{
             "type": "string",
@@ -83,7 +84,10 @@
         "domainJoinOptions": 3,
         "WindowsFeatureDSCFileName": "AddWindowsFeature.ps1.zip",
         "witnessStorageAccountName": "[concat(toLower(replace(resourceGroup().name,'-','')),'witness')]",
-        "addWindowsFeatureDscUrl": "[concat(parameters('azureToolsUrl'),parameters('branchName'),'/DSC/',variables('WindowsFeatureDSCFileName'))]"
+        "addWindowsFeatureDscUrl": "[concat(parameters('azureToolsUrl'),parameters('branchName'),'/DSC/',variables('WindowsFeatureDSCFileName'))]",
+        "sqlRepoTemplateUrl": "[concat(parameters('templateURL'),parameters('branchName'),'/RMTemplates/')]",
+        "sqlTemplateFileName": "SQLServer.template.json",
+        "sqlTemplateFileUrl": "[concat(variables('sqlRepoTemplateUrl'),variables('sqlTemplateFileName'))]"
     },
     "resources": [
         {
@@ -111,7 +115,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[concat(parameters('templateURL'),'SQLServer.template.json',parameters('sasQueryToken'))]",
+                    "uri": "[variables('sqlTemplateFileUrl')]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -125,7 +129,7 @@
                         "value": "[concat(parameters('sqlVmName'),if(less(copyIndex(),10),'0',''),copyIndex())]"
                     },
                     "virtualMachineSize": {
-                        "value": "[parameters('virtualMachineSize')]"
+                        "value": "[parameters('sqlVirtualMachineSize')]"
                     },
                     "adminUsername": {
                         "value": "[parameters('adminUserName')]"
@@ -220,9 +224,6 @@
                     "configurationArguments": {
                         "FeatureName": "Failover-Clustering"
                     }
-                },
-                "protectedSettings": {
-                    "configurationUrlSasToken": "[parameters('sasQueryToken')]"
                 }
             },
             "dependsOn": [

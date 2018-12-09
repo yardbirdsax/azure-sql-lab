@@ -5,8 +5,8 @@
     "adminUsername": {
       "value": "labadmin"
     },
-    "deployerInitials": {
-      "value": "jef"
+    "domainUserName": {
+      "value": "labadmin"
     },
     "sqlVirtualMachineSize": {
       "value": "Standard_D2S_V3"
@@ -14,11 +14,26 @@
     "dataStorageAccountType": {
       "value": "Standard_LRS"
     },
-    "backupStorageAccountType": {
-      "value": "Standard_LRS"
-    },
     "branchName":{
       "value": "dev"
+    },
+    "clusterName":{
+      "value": "labsqlclust01"
+    },
+    "sqlVmName":{
+      "value": "use2-labsql"
+    },
+    "sqlVmCount":{
+      "value": 2
+    },
+    "virtualNetworkName":{
+      "value": "azurelabvnet"
+    },
+    "virtualNetworkResourceGroupName":{
+      "value": "azurelab"
+    },
+    "subnetName":{
+      "value": "database"
     }
   }
 }
