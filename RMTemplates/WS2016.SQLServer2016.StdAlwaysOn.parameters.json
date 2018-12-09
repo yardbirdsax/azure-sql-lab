@@ -20,11 +20,11 @@
     "clusterName":{
       "value": "labsqlclust01"
     },
-    "sqlVmName":{
-      "value": "use2-labsql"
-    },
-    "sqlVmCount":{
-      "value": 2
+    "sqlVmNames":{
+      "value": [
+        "use2-labsql00",
+        "use2-labsql01"
+      ]
     },
     "virtualNetworkName":{
       "value": "azurelabvnet"

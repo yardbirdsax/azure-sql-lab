@@ -41,11 +41,8 @@
         "clusterName": {
             "type": "string"
         },
-        "sqlVmName": {
-            "type": "string"
-        },
-        "sqlVmCount": {
-            "type": "int"
+        "sqlVmNames": {
+            "type": "array"
         },
         "sasQueryToken": {
             "type": "securestring",
@@ -106,7 +103,7 @@
             "name": "[concat('SQLVM',copyIndex())]",
             "copy":{
                 "name":"SQLVMCopy",
-                "count": "[parameters('sqlVmCount')]"
+                "count": "[length(parameters('sqlVmNames'))]"
             },
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
@@ -126,7 +123,7 @@
                         "value": "[resourceGroup().location]"
                     },
                     "virtualMachineName": {
-                        "value": "[concat(parameters('sqlVmName'),if(less(copyIndex(),10),'0',''),copyIndex())]"
+                        "value": "[parameters('sqlVmNames')[copyIndex()]]"
                     },
                     "virtualMachineSize": {
                         "value": "[parameters('sqlVirtualMachineSize')]"
@@ -174,11 +171,11 @@
             "comments": "Join domain - JsonADDomainExtension",
             "apiVersion": "2015-06-15",
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(parameters('sqlVmName'),if(less(copyIndex(),10),'0',''),copyIndex(),'/joindomain')]",
+            "name": "[concat(parameters('sqlVmNames')[copyIndex()],'/joindomain')]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "JoinDomainCopy",
-                "count": "[parameters('sqlVmCount')]"
+                "count": "[length(parameters('sqlVmNames'))]"
             },
             "properties": {
                 "publisher": "Microsoft.Compute",
@@ -202,10 +199,10 @@
         },
         {
             "comments": "Add Failover Clustering feature",
-            "name": "[concat(parameters('sqlVmName'),if(less(add(copyIndex(),1),10),'0',''),add(copyIndex(),1),'/Microsoft.Powershell.DSC')]",
+            "name": "[concat(parameters('sqlVmNames')[copyIndex()],'/Microsoft.Powershell.DSC')]",
             "copy": {
-                "name": "AddFailoverClusteringFeature",
-                "count": "[sub(parameters('sqlVmCount'),1)]"
+                "name": "AddFailoverClusteringFeatureCopy",
+                "count": "[length(parameters('sqlVmNames'))]"
             },
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "location": "[resourceGroup().location]",
